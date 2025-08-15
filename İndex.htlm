@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ATC Brawl V1.0 — Demo</title>
+<style>
+:root{--red:#b71c1c;--dark:#0f0f10;--accent:#00a8ff;--panel:#161616;}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;color:#fff;}
+body{background:linear-gradient(180deg,#0b0b0d,#121214);}
+header{background:linear-gradient(90deg,var(--red),#7b0000);padding:12px;display:flex;align-items:center;gap:12px;}
+header h1{font-size:18px;}
+button{padding:8px 12px;border:none;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer;}
+.container{padding:14px;max-width:980px;margin:12px auto;}
+.menu-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px;}
+.menu-item{padding:12px;border-radius:10px;background:linear-gradient(180deg,#161616,#141414);text-align:center;}
+.card{background:linear-gradient(180deg,#111,#1b1b1b);border-radius:10px;padding:12px;border:1px solid rgba(255,255,255,.03);}
+.flex{display:flex;gap:10px;align-items:center;}
+.avatar{width:72px;height:72px;border-radius:16px;background:linear-gradient(135deg,#ffeb3b,#ff9800);display:flex;align-items:center;justify-content:center;font-weight:700;color:#000;font-size:20px;}
+#gameWrap{margin-top:14px;text-align:center;}
+canvas{border-radius:8px;background:#111;border:6px solid rgba(255,0,0,.12);max-width:100%;}
+.modal{position:fixed;left:0;top:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);z-index:9999;}
+.modal .box{width:92%;max-width:720px;background:var(--panel);padding:14px;border-radius:12px;}
+.row{display:flex;gap:8px;align-items:center;}
+input,select{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:#0f0f0f;color:#fff;width:100%;}
+label{font-size:13px;color:#ddd;}
+.small{font-size:13px;color:#ccc;}
+.inline-btn{padding:6px 8px;border-radius:8px;background:#222;border:1px solid rgba(255,255,255,.03);cursor:pointer;}
+footer{margin:30px 0;text-align:center;color:#999;font-size:13px;}
+@media(max-width:700px){.menu-grid{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ATC Brawl — V1.0 Demo</h1>
+  <div style="margin-left:auto" class="small" id="maintenanceBanner" hidden>BAKIM MODU AKTİF</div>
+</header>
+
+<div class="container">
+  <div class="flex">
+    <div class="card flex" style="gap:12px;align-items:center;">
+      <div class="avatar" id="avatarEl">S</div>
+      <div>
+        <div id="playerName">SNIPER</div>
+        <div class="small" id="playerID">ID: —</div>
+        <div class="small" id="playerInfo">🏆 <span id="playerCup">0</span> • 💎 <span id="playerGem">0</span> • 🪙 <span id="playerGold">0</span></div>
+      </div>
+    </div>
+    <button id="startMatch">Oyna</button>
+  </div>
+
+  <div class="card menu-grid" style="margin-top:12px">
+    <div class="menu-item"><h3>Savaşçılar</h3><p class="small">Karakter seçimi</p><button id="openBrawlers">Aç</button></div>
+    <div class="menu-item"><h3>Liderlik</h3><p class="small">Dünya sıralaması</p><button id="menuLeaderboard">Aç</button></div>
+    <div class="menu-item"><h3>Gölge Etkinliği</h3><p class="small">Etkinlik aktif</p><button disabled>Katılamaz</button></div>
+  </div>
+
+  <div id="gameWrap" class="card">
+    <div class="row" style="justify-content:space-between">
+      <div><strong>Seçili:</strong> <span id="selectedBrawler">Shelly</span></div>
+      <div class="small muted">Joystick sol • Atak sağ • Sprey üst</div>
+    </div>
+    <div style="margin-top:12px;text-align:center">
+      <canvas id="gameCanvas" width="720" height="420"></canvas>
+    </div>
+  </div>
+</div>
+
+<div id="modal" class="modal"><div class="box card" id="modalBox"></div></div>
+<footer>ATC Brawl V1.0 — Demo (tarayıcı)</footer>
+
+<script>
+/* ---------- Demo Player State ---------- */
+let player = {name:'SNIPER',avatar:'S',cup:0,gold:500,gems:10,brawlers:['Shelly','Colt','Bull','Nita','Brock','Spike','El Primo'],selected:'Shelly'};
+
+/* ---------- UI Update ---------- */
+function updateUI(){
+  document.getElementById('playerName').innerText = player.name;
+  document.getElementById('playerID').innerText = 'ID: DEMO';
+  document.getElementById('playerCup').innerText = player.cup;
+  document.getElementById('playerGold').innerText = player.gold;
+  document.getElementById('playerGem').innerText = player.gems;
+  document.getElementById('avatarEl').innerText = player.avatar;
+  document.getElementById('selectedBrawler').innerText = player.selected;
+}
+updateUI();
+
+/* ---------- Modals ---------- */
+const modal=document.getElementById('modal');
+const modalBox=document.getElementById('modalBox');
+function showModal(html){modalBox.innerHTML=html;modal.style.display='flex';}
+function closeModal(){modal.style.display='none';}
+
+/* ---------- Brawlers ---------- */
+document.getElementById('openBrawlers').onclick=()=>{
+  let html='<h2>Savaşçılar</h2><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">';
+  player.brawlers.forEach(b=>{
+    html+=`<div style="width:30%;background:#111;padding:8px;border-radius:8px">
+      <div style="font-size:20px">${b} <strong>${b}</strong></div>
+      <div style="margin-top:8px"><button onclick="selectBrawler('${b}')">${player.selected===b?'Seçili':'Seç'}</button></div>
+    </div>`;
+  });
+  html+='</div><div style="margin-top:10px"><button onclick="closeModal()">Kapat</button></div>';
+  showModal(html);
+};
+function selectBrawler(name){player.selected=name;updateUI();closeModal();alert(name+' seçildi!');}
+
+/* ---------- Leaderboard (demo) ---------- */
+document.getElementById('menuLeaderboard').onclick=()=>{
+  showModal('<h2>Liderlik</h2><ol><li>SNIPER — 0 kupa</li></ol><div style="margin-top:10px"><button onclick="closeModal()">Kapat</button></div>');
+};
+
+/* ---------- Game Logic ---------- */
+const canvas=document.getElementById('gameCanvas');
+const ctx=canvas.getContext('2d');
+let running=false,p={x:360,y:210,w:36,h:36,color:'#0ff',superReady:true};
+let bullets=[],keys={};
+document.addEventListener('keydown',e=>keys[e.key]=true);
+document.addEventListener('keyup',e=>keys[e.key]=false);
+
+document.getElementById('startMatch').onclick=startMatch;
+
+function startMatch(){
+  running=true;bullets=[];
+  // Demo 1v1: bot yok, sadece hareket ve atak test
+  gameLoop();
+}
+
+function gameLoop(){
+  if(!running) return;
+  // Input
+  if(keys['ArrowLeft']) p.x-=3;
+  if(keys['ArrowRight']) p.x+=3;
+  if(keys['ArrowUp']) p.y-=3;
+  if(keys['ArrowDown']) p.y+=3;
+  if(keys[' '
